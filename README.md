@@ -3,7 +3,7 @@
 
 To run this project:
 
-Create virtual directory and activate it first.
+Create virtual environment and activate it first.
 
 STEP 1 : Go inside bakery_system and run command python manage.py makemigrations
 STEP 2 : python manange.py migrate
