@@ -2,12 +2,21 @@
 
 {% block body %}
 
-<section id="form" style="margin-left: 30%;">
+<section id="form">
         <div class="container">
-            <div class="col-sm-4 col-sm-offset-1">
+            <div class="card card-1 col-sm-4 col-sm-offset-1">
 
                 <div class="signup-form">
-                    <h2>New User Signup</h2>
+                    
+                    <div class="login-register-tab-list nav">
+                        <a  data-bs-toggle="tab" href="{% url 'login' %}">
+                            <h4>login</h4>
+                        </a>
+                        |
+                        <a class="active" data-bs-toggle="tab" href="{% url 'signup' %}">
+                            <h4>register</h4>
+                        </a>
+                    </div>
                     <form method="POST">
                         {% csrf_token %}
                         {% for field in form %}
@@ -16,7 +25,7 @@
                         {% endfor %}
 
                         <button clas="btn btn-default" type="submit">Signup</button><br />
-                        <span style="margin-left: 80px;">Already have an account ?</span>&nbsp;<a href="{% url 'login' %}">Log In</a>
+                        <!-- <span style="margin-left: 80px;">Already have an account ?</span>&nbsp;<a href="{% url 'login' %}">Log In</a> -->
                     </form>
                 </div>
 

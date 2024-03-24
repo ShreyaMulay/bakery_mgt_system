@@ -22,6 +22,7 @@ class Cart(object):
         """
         Add a product to the cart or update its quantity.
         """
+        print("::product",product.image)
         id = product.id
         newItem = True
         if str(product.id) not in self.cart.keys():
@@ -31,6 +32,7 @@ class Cart(object):
                 'product_id': id,
                 'name': product.name,
                 'quantity': 1,
+                'image': str(product.image),
                 'price': str(product.price),
             }
         else:
@@ -50,9 +52,10 @@ class Cart(object):
                     'product_id': product.id,
                     'name': product.name,
                     'quantity': 1,
+                    'image':product.image,
                     'price': str(product.price),
                 }
-
+        print("::self.cart",self.cart)
         self.save()
 
     def save(self):
