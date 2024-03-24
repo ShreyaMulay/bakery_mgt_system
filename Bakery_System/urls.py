@@ -56,11 +56,13 @@ urlpatterns = [
     #search 
     path('search/',views.Search,name="search"),
 
+    #placeorder
+    path('checkout/placeorder',views.Place_Order,name="place_order"),
+
+    path('success',views.Success,name="success"),
 
 
 
 
-
-    
 
 ] + static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)

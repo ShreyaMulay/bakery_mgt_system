@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from app.models import Category,Product,Contact_Us,Order,Brand
+from app.models import Category,Product,Contact_Us,Order,Brand,OrderNew,OrderItem
 
 from django.contrib.auth import authenticate,login
 from app.models import UserCreateForm
@@ -11,6 +11,15 @@ from cart.cart import Cart
 from django.http import HttpResponse
 
 from django.contrib.auth.models import User 
+
+from django.conf import settings
+
+from django.views.decorators.csrf import csrf_exempt
+
+
+import razorpay
+
+client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID,settings.RAZORPAY_KEY_SECRET))
 
 
 def Master(req):
@@ -78,6 +87,7 @@ def Contact_Page(req):
 def cart_add(request, id):
     cart = Cart(request)
     product = Product.objects.get(id=id)
+    print("::shreya",product)
     cart.add(product=product)
     return redirect("index")
 
@@ -119,48 +129,70 @@ def cart_detail(request):
 
 
 def Checkout(req):
-    if(req.method == "POST"):
-        address = req.POST.get('address')
-        phone = req.POST.get('phone')
-        pincode = req.POST.get('pincode')
-        cart = req.session.get('cart')
-        uid= req.session.get('_auth_user_id')
-        user = User.objects.get(id=uid)
+    # if(req.method == "POST"):
+    #     address = req.POST.get('address')
+    #     phone = req.POST.get('phone')
+    #     pincode = req.POST.get('pincode')
+    #     cart = req.session.get('cart')
+    #     uid= req.session.get('_auth_user_id')
+    #     user = User.objects.get(id=uid)
 
-        print(cart)
-        for i in cart:
-            a=int(cart[i]['price'])
-            b=int(cart[i]['quantity'])
-            total = a*b
-            order = Order(
-                user = user,
-                product = cart[i]['name'],
-                price = cart[i]['price'],
-                quantity = cart[i]['quantity'],
-                # image = cart[i]['image'],
-                address = address,
-                phone = phone,
-                pincode = pincode,
-                total = total,
-            )
-            order.save()
-        req.session['cart'] = {}
-        return redirect('index')
+    #     print(cart)
+    #     for i in cart:
+    #         a=int(cart[i]['price'])
+    #         b=int(cart[i]['quantity'])
+    #         total = a*b
+    #         order = Order(
+    #             user = user,
+    #             product = cart[i]['name'],
+    #             price = cart[i]['price'],
+    #             quantity = cart[i]['quantity'],
+    #             image = cart[i]['image'],
+    #             address = address,
+    #             phone = phone,
+    #             pincode = pincode,
+    #             total = total,
+    #         )
+    #         order.save()
+    #     req.session['cart'] = {}
+    #     return redirect('index')
 
-    return HttpResponse('shreyaaa')
+    # # return HttpResponse('shreyaaa')
     # return render(req,'checkout.html')
+
+    amount_str = req.POST.get('amount')
+    amount_float = float(amount_str)
+    amount = int(amount_float)
+
+
+
+    print("::amount",amount)
+    payment = client.order.create({
+        "amount":amount,
+        "currency":"INR",
+        "payment_capture":"1"
+    })
+
+    print("::payment",payment)
+
+    order_id = payment['id']
+
+    context = {
+        "order_id":order_id,
+        "payment":payment
+    }
+    return render(req,'checkout.html',context)
 
 def Your_Order(req):
     uid= req.session.get('_auth_user_id')
     user = User.objects.get(id=uid)
 
-    order = Order.objects.filter(user= user)
+    order = OrderItem.objects.filter(user = user)
 
     context = {
         'order':order
     }
-
-
+    
     return render(req,'order.html',context)
 
 
@@ -193,6 +225,8 @@ def Product_Detail(req,id):
     brand = Brand.objects.all()
     brandid = req.GET.get('brand')
     product = Product.objects.all()
+    product1 = Product.objects.all()
+
     categoryID = req.GET.get('category')
 
     if(categoryID):
@@ -205,7 +239,9 @@ def Product_Detail(req,id):
         'category':category,
         'brand':brand,
         'product':product,
+        'product1':product1,
     }
+
     return render(req,'product_detail.html',context)
 
 def Search(req):
@@ -216,3 +252,84 @@ def Search(req):
     }
 
     return render(req,'search.html',context)
+
+def Place_Order(req):
+    if req.method == 'POST':
+        uid= req.session.get('_auth_user_id')
+        user = User.objects.get(id=uid)
+        cart = req.session.get('cart')
+
+        name = req.POST.get('name')
+        country = req.POST.get('country')
+        paymentmode = req.POST.get('paymentmode')
+        address = req.POST.get('address')
+        city = req.POST.get('city')
+        state = req.POST.get('state')
+        postcode = req.POST.get('postcode')
+        phone = req.POST.get('phone')
+        email = req.POST.get('email')
+        order_id = req.POST.get('order_id')
+        payment = req.POST.get('payment')
+        amount = req.POST.get('amount')
+
+
+        # print(order_id,payment,name,address,country,city,state,postcode,phone,email)
+
+        context = {
+            "order_id": order_id,
+            "paymentmode": paymentmode
+        }
+
+        order = OrderNew(
+            user=user,
+            name=name,
+            country=country,
+            paymentmode= paymentmode,
+            address=address,
+            city = city,
+            state = state,
+            postcode = postcode,
+            phone = phone,
+            email = email,
+            payment_id = order_id,
+            amount = amount
+        )
+        order.save()
+
+        print("::paymentmode",paymentmode)
+        for i in cart:
+            a=int(cart[i]['price'])
+            b=int(cart[i]['quantity'])
+            total = a*b
+
+            item = OrderItem(
+                user = user,
+                order = order,
+                product = cart[i]['name'],
+                image = cart[i]['image'],
+                quantity = cart[i]['quantity'],
+                price = cart[i]['price'],
+                total = total
+            )
+            item.save()
+
+        return render(req,'placeorder.html',context)
+
+@csrf_exempt
+def Success(req):
+    print("::inside success function")
+    if req.method == 'POST':
+        a = req.POST
+        order_id = ""
+        for key,val in a.items():
+            if key == 'razorpay_order_id':
+                order_id = val
+                break
+
+        user = OrderNew.objects.filter(payment_id=order_id).first()
+        user.paid = True
+        user.save()
+        req.session['cart'] = {}
+    else:
+        req.session['cart'] = {}
+    return render(req,'thank-you.html')
